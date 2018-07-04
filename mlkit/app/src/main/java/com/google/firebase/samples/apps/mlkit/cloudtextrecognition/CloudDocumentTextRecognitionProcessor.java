@@ -58,4 +58,6 @@ public class CloudDocumentTextRecognitionProcessor
   protected void onFailure(@NonNull Exception e) {
     Log.w(TAG, "Cloud Document Text detection failed." + e);
   }
+  @Override
+  public void setLastFPS(float fps){}
 }

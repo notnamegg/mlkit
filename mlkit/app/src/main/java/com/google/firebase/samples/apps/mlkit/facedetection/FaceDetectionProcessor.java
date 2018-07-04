@@ -79,4 +79,6 @@ public class FaceDetectionProcessor extends VisionProcessorBase<List<FirebaseVis
   protected void onFailure(@NonNull Exception e) {
     Log.e(TAG, "Face detection failed " + e);
   }
+  @Override
+  public void setLastFPS(float fps){}
 }

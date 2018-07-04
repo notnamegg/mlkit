@@ -170,6 +170,7 @@ public final class LivePreviewActivity extends AppCompatActivity
       }
     } catch (FirebaseMLException e) {
       Log.e(TAG, "can not create camera source: " + model);
+      Log.e(TAG, e.toString());
     }
   }
 

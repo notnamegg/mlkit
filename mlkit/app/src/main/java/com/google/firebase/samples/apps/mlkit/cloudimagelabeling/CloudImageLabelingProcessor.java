@@ -75,4 +75,6 @@ public class CloudImageLabelingProcessor
   protected void onFailure(@NonNull Exception e) {
     Log.e(TAG, "Cloud Label detection failed " + e);
   }
+  @Override
+  public void setLastFPS(float fps){}
 }

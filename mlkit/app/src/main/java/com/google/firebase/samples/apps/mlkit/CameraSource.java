@@ -22,6 +22,7 @@ import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.CameraInfo;
+import android.os.SystemClock;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresPermission;
 import android.util.Log;
@@ -84,8 +85,8 @@ public class CameraSource {
   // These values may be requested by the caller.  Due to hardware limitations, we may need to
   // select close, but not exactly the same values for these.
   private final float requestedFps = 20.0f;
-  private final int requestedPreviewWidth = 1280;
-  private final int requestedPreviewHeight = 960;
+  private final int requestedPreviewWidth = 640;
+  private final int requestedPreviewHeight = 640;
   private final boolean requestedAutoFocus = true;
 
   // These instances need to be held onto to avoid GC of their underlying resources.  Even though
@@ -602,6 +603,7 @@ public class CameraSource {
     // This lock guards all of the member variables below.
     private final Object lock = new Object();
     private boolean active = true;
+    private float fps=0.0f;
 
     // These pending variables hold the state associated with the new frame awaiting processing.
     private ByteBuffer pendingFrameData;
@@ -704,7 +706,8 @@ public class CameraSource {
 
         try {
           synchronized (processorLock) {
-            Log.d(TAG, "Process an image");
+            //Log.d(TAG, "Process an image");
+            long startTime = SystemClock.uptimeMillis();
             frameProcessor.process(
                 data,
                 new FrameMetadata.Builder()
@@ -714,6 +717,9 @@ public class CameraSource {
                     .setCameraFacing(facing)
                     .build(),
                 graphicOverlay);
+            float fps=1000.0f/(SystemClock.uptimeMillis()-startTime);
+            Log.d(TAG, "FPS:"+fps);
+            frameProcessor.setLastFPS(fps);
           }
         } catch (Throwable t) {
           Log.e(TAG, "Exception thrown from receiver.", t);

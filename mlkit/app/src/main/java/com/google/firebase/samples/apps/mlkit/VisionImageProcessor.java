@@ -35,4 +35,6 @@ public interface VisionImageProcessor {
 
   /** Stops the underlying machine learning model and release resources. */
   void stop();
+
+  void setLastFPS(float fps);
 }

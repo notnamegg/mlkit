@@ -67,4 +67,6 @@ public class ImageLabelingProcessor extends VisionProcessorBase<List<FirebaseVis
   protected void onFailure(@NonNull Exception e) {
     Log.w(TAG, "Label detection failed." + e);
   }
+  @Override
+  public void setLastFPS(float fps){}
 }

@@ -71,4 +71,6 @@ public class CloudLandmarkRecognitionProcessor
   protected void onFailure(@NonNull Exception e) {
     Log.e(TAG, "Cloud Landmark detection failed " + e);
   }
+  @Override
+  public void setLastFPS(float fps){}
 }

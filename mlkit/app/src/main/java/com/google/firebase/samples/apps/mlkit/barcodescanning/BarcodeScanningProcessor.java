@@ -75,4 +75,6 @@ public class BarcodeScanningProcessor extends VisionProcessorBase<List<FirebaseV
   protected void onFailure(@NonNull Exception e) {
     Log.e(TAG, "Barcode detection failed " + e);
   }
+  @Override
+  public void setLastFPS(float fps){}
 }

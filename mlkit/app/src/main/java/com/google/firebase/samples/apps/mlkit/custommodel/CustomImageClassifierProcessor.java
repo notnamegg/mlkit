@@ -31,12 +31,16 @@ public class CustomImageClassifierProcessor implements VisionImageProcessor {
 
   private final CustomImageClassifier classifier;
   private final Activity activity;
+  private float lastfps;
 
   public CustomImageClassifierProcessor(Activity activity) throws FirebaseMLException {
     this.activity = activity;
     classifier = new CustomImageClassifier(activity);
   }
 
+  public void setLastFPS(float fps){
+    this.lastfps = fps;
+  }
   @Override
   public void process(
           ByteBuffer data, FrameMetadata frameMetadata, final GraphicOverlay graphicOverlay)
@@ -48,7 +52,7 @@ public class CustomImageClassifierProcessor implements VisionImageProcessor {
             new OnSuccessListener<List<String>>() {
               @Override
               public void onSuccess(List<String> result) {
-                LabelGraphic labelGraphic = new LabelGraphic(graphicOverlay);
+                LabelGraphic labelGraphic = new LabelGraphic(graphicOverlay,lastfps);
                 graphicOverlay.clear();
                 graphicOverlay.add(labelGraphic);
                 labelGraphic.updateLabel(result);

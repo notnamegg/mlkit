@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 
+
 /** A {@code FirebaseModelInterpreter} based image classifier. */
 public class CustomImageClassifier {
 
@@ -60,7 +61,7 @@ public class CustomImageClassifier {
   private static final String LOCAL_MODEL_NAME = "mobilenet_quant_v1";
 
   /** Path of the model file stored in Assets. */
-  private static final String LOCAL_MODEL_PATH = "mobilenet_quant_v1_224.tflite";
+  private static final String LOCAL_MODEL_PATH = "inceptionv3.tflite";
 
   /** Name of the model uploaded to the Firebase console. */
   private static final String HOSTED_MODEL_NAME = "mobilenet_v1";
@@ -76,9 +77,11 @@ public class CustomImageClassifier {
 
   private static final int DIM_PIXEL_SIZE = 3;
 
-  private static final int DIM_IMG_SIZE_X = 224;
-  private static final int DIM_IMG_SIZE_Y = 224;
+  private static final int DIM_IMG_SIZE_X = 299;
+  private static final int DIM_IMG_SIZE_Y = 299;
 
+  private static final float IMAGE_MEAN = 128.0f;
+  private static final float IMAGE_STD = 128.0f;
   /* Preallocated buffers for storing image data in. */
   private final int[] intValues = new int[DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y];
 
@@ -132,8 +135,8 @@ public class CustomImageClassifier {
     int[] outputDims = {1, labelList.size()};
     dataOptions =
         new FirebaseModelInputOutputOptions.Builder()
-            .setInputFormat(0, FirebaseModelDataType.BYTE, inputDims)
-            .setOutputFormat(0, FirebaseModelDataType.BYTE, outputDims)
+            .setInputFormat(0, FirebaseModelDataType.FLOAT32, inputDims)
+            .setOutputFormat(0, FirebaseModelDataType.FLOAT32, outputDims)
             .build();
     Log.d(TAG, "Configured input & output data for the custom image classifier.");
   }
@@ -148,7 +151,8 @@ public class CustomImageClassifier {
       Tasks.forResult(uninitialized);
     }
     // Create input data.
-    ByteBuffer imgData = convertBitmapToByteBuffer(buffer, width, height);
+    //ByteBuffer imgData = convertBitmapToByteBuffer(buffer, width, height);
+    float[][][][] imgData = convertBitmapToFloatBuffer(buffer, width, height);
 
     FirebaseModelInputs inputs = new FirebaseModelInputs.Builder().add(imgData).build();
     // Here's where the magic happens!!
@@ -158,8 +162,14 @@ public class CustomImageClassifier {
             new Continuation<FirebaseModelOutputs, List<String>>() {
               @Override
               public List<String> then(Task<FirebaseModelOutputs> task) throws Exception {
-                byte[][] labelProbArray = task.getResult().<byte[][]>getOutput(0);
-                return printTopKLabels(labelProbArray);
+                try{
+                    float[][] labelProbArray = task.getResult().<float[][]>getOutput(0);
+                    return printTopKLabels(labelProbArray);
+                }
+                catch(java.lang.Exception e){
+                      Log.e(TAG,e.toString());
+                      throw e;
+                }
               }
             });
   }
@@ -201,7 +211,32 @@ public class CustomImageClassifier {
       }
     }
     long endTime = SystemClock.uptimeMillis();
-    Log.d(TAG, "Timecost to put values into ByteBuffer: " + (endTime - startTime));
+    //Log.d(TAG, "Timecost to put values into ByteBuffer: " + (endTime - startTime));
+    return imgData;
+  }
+
+    /** Writes Image data into a {@code ByteBuffer}. */
+  private synchronized float[][][][] convertBitmapToFloatBuffer(
+          ByteBuffer buffer, int width, int height) {
+    float[][][][] imgData= new float[DIM_BATCH_SIZE][DIM_IMG_SIZE_X][DIM_IMG_SIZE_Y][DIM_PIXEL_SIZE];
+
+    //imgData.order(ByteOrder.nativeOrder());
+    Bitmap bitmap = createResizedBitmap(buffer, width, height);
+    //imgData.rewind();
+    bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
+    // Convert the image to int points.
+    int pixel = 0;
+    long startTime = SystemClock.uptimeMillis();
+    for (int i = 0; i < DIM_IMG_SIZE_X; ++i) {
+      for (int j = 0; j < DIM_IMG_SIZE_Y; ++j) {
+          final int val = intValues[pixel++];
+        imgData[0][i][j][0] = (float) (((val >> 16) & 0xFF)-IMAGE_MEAN)/IMAGE_STD;
+        imgData[0][i][j][1] = (float) (((val >> 8) & 0xFF)-IMAGE_MEAN)/IMAGE_STD;
+        imgData[0][i][j][2] = (float) ((val  & 0xFF)-IMAGE_MEAN)/IMAGE_STD;
+      }
+    }
+    long endTime = SystemClock.uptimeMillis();
+    //Log.d(TAG, "Timecost to put values into ByteBuffer: " + (endTime - startTime));
     return imgData;
   }
 
@@ -216,10 +251,27 @@ public class CustomImageClassifier {
   }
 
   /** Prints top-K labels, to be shown in UI as the results. */
-  private synchronized List<String> printTopKLabels(byte[][] labelProbArray) {
+/*  private synchronized List<String> printTopKLabels(byte[][] labelProbArray) {
     for (int i = 0; i < labelList.size(); ++i) {
       sortedLabels.add(
           new AbstractMap.SimpleEntry<>(labelList.get(i), (labelProbArray[0][i] & 0xff) / 255.0f));
+      if (sortedLabels.size() > RESULTS_TO_SHOW) {
+        sortedLabels.poll();
+      }
+    }
+    List<String> result = new ArrayList<>();
+    final int size = sortedLabels.size();
+    for (int i = 0; i < size; ++i) {
+      Map.Entry<String, Float> label = sortedLabels.poll();
+      result.add(label.getKey() + ":" + label.getValue());
+    }
+    return result;
+  }*/
+    /** Prints top-K labels, to be shown in UI as the results. */
+  private synchronized List<String> printTopKLabels(float[][] labelProbArray) {
+    for (int i = 0; i < labelList.size(); ++i) {
+      sortedLabels.add(
+          new AbstractMap.SimpleEntry<>(labelList.get(i), labelProbArray[0][i] ));
       if (sortedLabels.size() > RESULTS_TO_SHOW) {
         sortedLabels.poll();
       }

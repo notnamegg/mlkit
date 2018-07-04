@@ -77,4 +77,6 @@ public class TextRecognitionProcessor extends VisionProcessorBase<FirebaseVision
   protected void onFailure(@NonNull Exception e) {
     Log.w(TAG, "Text detection failed." + e);
   }
+  @Override
+  public void setLastFPS(float fps){}
 }
